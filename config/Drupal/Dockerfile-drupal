@@ -1,0 +1,36 @@
+FROM drupal:9-php8.1-fpm
+ENV NODE_VERSION=16.17.1
+RUN mkdir /home/nginx /home/nginx/.ssh 
+RUN useradd nginx -d /home/nginx -s /bin/bash 
+RUN apt-get update && apt-get install nginx git wget -y 
+RUN cp -p /usr/sbin/nginx /usr/bin/ && chown nginx:nginx /usr/bin/nginx 
+RUN cp -p /usr/local/sbin/php-fpm /usr/bin/ && chown nginx:nginx /usr/bin/php-fpm 
+RUN cd /opt &&  rm -rf drupal && rm -rf /var/www/html
+RUN chown -R nginx:nginx /etc/nginx  && chown -R nginx:nginx /var/log/nginx && chown -R nginx:nginx /home/nginx
+RUN chown -R nginx:nginx /usr/local && chown -R nginx:nginx /var/lib/nginx && chown -R nginx:nginx /run && chown -R nginx:nginx /dev 
+RUN chown -R nginx:nginx /opt && chown -R nginx:nginx /var/www/
+RUN cd /etc/nginx/ && rm -r sites-available sites-enabled nginx.conf
+RUN ssh-keyscan -H bitbucket.org >> /home/nginx/.ssh/known_hosts
+COPY --chown=1000:1000 ./config/id_rsa /home/nginx/.ssh/id_rsa
+COPY --chown=1000:1000 ./config/drupal.conf /etc/nginx/conf.d/drupal.conf
+COPY --chown=1000:1000 ./config/www.conf /usr/local/etc/php-fpm.d/www.conf
+COPY --chown=1000:1000 ./config/init.sh /home/nginx/init.sh
+COPY --chown=1000:1000 ./config/nginx.conf /etc/nginx/nginx.conf
+RUN chmod 700 /home/nginx/.ssh/id_rsa
+RUN su - nginx -c "cd /opt && git clone git@bitbucket.org:borngroup/techm-corporate-website.git"
+COPY --chown=1000:1000 ./config/default.settings.local.php /opt/techm-corporate-website/web/sites/default/default.settings.local.php
+COPY --chown=1000:1000 ./config/default.settings.local.php /opt/techm-corporate-website/web/sites/default/settings.php
+ADD --chown=1000:1000 ./web/files_live /opt/techm-corporate-website/web/sites/default/files
+RUN su - nginx -c "ln -s /opt/techm-corporate-website/web /var/www/html"
+RUN su - nginx -c "sed -i 's/memory_limit = 128M/memory_limit = 512M/g' /usr/local/etc/php/php.ini-development"
+RUN su - nginx -c "cd /usr/local/etc/php && mv php.ini-development php.ini"
+RUN su - nginx -c "wget https://nodejs.org/dist/v$NODE_VERSION/node-v$NODE_VERSION-linux-x64.tar.gz -P /opt" 
+RUN su - nginx -c "cd /opt && tar -xzf node-v$NODE_VERSION-linux-x64.tar.gz" 
+RUN rm /opt/node-v$NODE_VERSION-linux-x64.tar.gz
+RUN ln -s /opt/node-v$NODE_VERSION-linux-x64/bin/node /usr/bin/node  && ln -s /opt/node-v$NODE_VERSION-linux-x64/bin/npm /usr/bin/npm
+RUN su - nginx -c "cd /opt/techm-corporate-website && composer install"
+RUN su - nginx -c "cd /opt/techm-corporate-website/web/themes/custom/techm && npm install"
+WORKDIR /opt/techm-corporate-website
+USER nginx
+EXPOSE 8080
+CMD ["bash", "/home/nginx/init.sh"]
