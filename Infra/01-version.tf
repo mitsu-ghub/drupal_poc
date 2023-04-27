@@ -29,20 +29,22 @@ terraform {
 
   backend "s3" {
 
-    bucket = "techm-terraform-tfstate-bucket"
+    bucket = "techm-terraform-tfstate-bucket-mitsu"
     key = "techm/dev/terraform.tfstate"
-    profile = "BORN"
-    region = "ca-central-1"
+    #profile = "BORN"
+    region = "us-east-1"
 
-    dynamodb_table = "techm-dev-eks-cluster"
+    #dynamodb_table = "techm-dev-eks-cluster"
   }
+  
 }
 
-
+/*
 provider "aws" {
   region = var.region
   profile = var.profile
 }
+*/
 
 provider "null" {
   # Configuration options
@@ -54,7 +56,7 @@ provider "helm" {
     cluster_ca_certificate = base64decode(aws_eks_cluster.eks_cluster.certificate_authority[0].data)
     exec {
     api_version = "client.authentication.k8s.io/v1beta1"
-    args        = ["eks", "get-token", "--cluster-name", "TechM-dev-eks-cluster", "--profile", "BORN" ]
+    args        = ["eks", "get-token", "--cluster-name", "Techm-dev-eks-cluster", "--profile", "BORN" ]
     command     = "aws"
     }
   }

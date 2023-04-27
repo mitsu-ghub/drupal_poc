@@ -14,7 +14,7 @@ variable "profile" {
 variable "project" {
     description = "Name of the project"
     type = string
-    default = "TechM"
+    default = "Techm"
   
 }
 
